@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{graphics::Rect, View, ViewId};
 use slotmap::HopSlotMap;
 
@@ -12,6 +14,7 @@ pub struct Tree {
     area: Rect,
 
     nodes: HopSlotMap<ViewId, Node>,
+    size_diffs: HashMap<ViewId, i32>,
 
     // used for traversals
     stack: Vec<(ViewId, Rect)>,
@@ -93,12 +96,16 @@ impl Tree {
         // root is it's own parent
         nodes[root].parent = root;
 
+        let mut size_diffs = HashMap::new();
+        size_diffs.insert(root, 0);
+
         Self {
             root,
             focus: root,
             // fullscreen: false,
             area,
             nodes,
+            size_diffs,
             stack: Vec::new(),
         }
     }
@@ -365,13 +372,23 @@ impl Tree {
                             let mut child_y = area.y;
 
                             for (i, child) in container.children.iter().enumerate() {
+                                let unique_height = (height as i32
+                                    + self.size_diffs.get(child).unwrap_or(&0)
+                                    + if i + 2 == len {
+                                        self.size_diffs
+                                            .get(container.children.get(i + 1).unwrap())
+                                            .unwrap_or(&0)
+                                    } else {
+                                        &0
+                                    }) as u16;
+
                                 let mut area = Rect::new(
                                     container.area.x,
                                     child_y,
                                     container.area.width,
-                                    height,
+                                    unique_height,
                                 );
-                                child_y += height;
+                                child_y += unique_height;
 
                                 // last child takes the remaining width because we can get uneven
                                 // space from rounding
@@ -393,13 +410,23 @@ impl Tree {
                             let mut child_x = area.x;
 
                             for (i, child) in container.children.iter().enumerate() {
+                                let unique_width = (width as i32
+                                    + self.size_diffs.get(child).unwrap_or(&0)
+                                    + if i + 2 == len {
+                                        self.size_diffs
+                                            .get(container.children.get(i + 1).unwrap())
+                                            .unwrap_or(&0)
+                                    } else {
+                                        &0
+                                    }) as u16;
+
                                 let mut area = Rect::new(
                                     child_x,
                                     container.area.y,
-                                    width,
+                                    unique_width,
                                     container.area.height,
                                 );
-                                child_x += width + inner_gap;
+                                child_x += unique_width + inner_gap;
 
                                 // last child takes the remaining width because we can get uneven
                                 // space from rounding
@@ -557,6 +584,48 @@ impl Tree {
             let (key, _) = self.traverse().next().unwrap();
             key
         }
+    }
+
+    pub fn width_plus(&mut self) {
+        self.change_area(Layout::Horizontal, 1);
+    }
+
+    pub fn width_minus(&mut self) {
+        self.change_area(Layout::Horizontal, -1);
+    }
+
+    pub fn height_plus(&mut self) {
+        self.change_area(Layout::Vertical, -1);
+    }
+
+    pub fn height_minus(&mut self) {
+        self.change_area(Layout::Vertical, 1);
+    }
+
+    fn change_area(&mut self, layout: Layout, change: i32) {
+        if self.focus == self.root {
+            return;
+        }
+        let focus = self.focus;
+        let parent = self.nodes.get(focus).unwrap().parent;
+        let node = self.nodes.get(parent).unwrap();
+        let view: &ViewId;
+
+        match &node.content {
+            Content::View(_) => {
+                panic!("Parent should not be View");
+            }
+            Content::Container(container) => {
+                view = if layout == container.layout {
+                    &parent
+                } else {
+                    &self.focus
+                };
+            }
+        }
+        let s = self.size_diffs.get(view).unwrap_or(&0);
+        self.size_diffs.insert(*view, s + change);
+        self.recalculate();
     }
 
     pub fn transpose(&mut self) {

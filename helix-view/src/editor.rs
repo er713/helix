@@ -1525,6 +1525,22 @@ impl Editor {
         self.tree.transpose();
     }
 
+    pub fn make_pane_wider(&mut self) {
+        self.tree.width_plus();
+    }
+
+    pub fn make_pane_narrower(&mut self) {
+        self.tree.width_minus();
+    }
+
+    pub fn make_pane_taller(&mut self) {
+        self.tree.height_plus();
+    }
+
+    pub fn make_pane_shorter(&mut self) {
+        self.tree.height_minus();
+    }
+
     pub fn should_close(&self) -> bool {
         self.tree.is_empty()
     }

@@ -420,6 +420,10 @@ impl MappableCommand {
         swap_view_up, "Swap with split above",
         swap_view_down, "Swap with split below",
         transpose_view, "Transpose splits",
+        make_pane_wider, "Make focused pane wider",
+        make_pane_narrower, "Make focused pane narrower",
+        make_pane_taller, "Make focused pane taller",
+        make_pane_shorter, "Make focused pane shorter",
         rotate_view, "Goto next window",
         rotate_view_reverse, "Goto previous window",
         hsplit, "Horizontal bottom split",
@@ -4634,6 +4638,22 @@ fn swap_view_down(cx: &mut Context) {
 
 fn transpose_view(cx: &mut Context) {
     cx.editor.transpose_view()
+}
+
+fn make_pane_wider(cx: &mut Context) {
+    cx.editor.make_pane_wider()
+}
+
+fn make_pane_narrower(cx: &mut Context) {
+    cx.editor.make_pane_narrower()
+}
+
+fn make_pane_taller(cx: &mut Context) {
+    cx.editor.make_pane_taller()
+}
+
+fn make_pane_shorter(cx: &mut Context) {
+    cx.editor.make_pane_shorter()
 }
 
 // split helper, clear it later
