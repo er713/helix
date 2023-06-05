@@ -199,9 +199,9 @@ impl EditorView {
         Self::render_rulers(editor, doc, view, inner, surface, theme);
 
         // if we're not at the edge of the screen, draw a right border
+        let border_style = theme.get("ui.window");
         if viewport.right() != view.area.right() {
             let x = area.right();
-            let border_style = theme.get("ui.window");
             for y in area.top()..area.bottom() {
                 surface[(x, y)]
                     .set_symbol(tui::symbols::line::VERTICAL)
@@ -209,9 +209,37 @@ impl EditorView {
                     .set_style(border_style);
             }
         }
+        if !is_focused && viewport.bottom() != view.area.bottom() {
+            let y = area.bottom() - 1;
+            if area.left() != viewport.left() {
+                let x = area.left() - 1;
+                let s = match surface[(x, y)].symbol.as_str() {
+                    tui::symbols::line::VERTICAL => tui::symbols::line::VERTICAL_RIGHT,
+                    tui::symbols::line::VERTICAL_LEFT => tui::symbols::line::CROSS,
+                    _ => "",
+                };
+                surface[(x, y)].set_symbol(s).set_style(border_style);
+            }
+            for x in area.left()..area.right() {
+                surface[(x, y)]
+                    .set_symbol(tui::symbols::line::HORIZONTAL)
+                    .set_style(border_style);
+            }
+            if area.right() != viewport.right() {
+                let x = area.right();
+                if surface[(x, y - 1)].symbol == tui::symbols::line::VERTICAL {
+                    surface[(x, y)]
+                        .set_symbol(tui::symbols::line::VERTICAL_LEFT)
+                        .set_style(border_style);
+                }
+            }
+        }
 
         Self::render_diagnostics(doc, view, inner, surface, theme);
 
+        if !is_focused {
+            return;
+        }
         let statusline_area = view
             .area
             .clip_top(view.area.height.saturating_sub(1))
